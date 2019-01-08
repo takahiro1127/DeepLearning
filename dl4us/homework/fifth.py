@@ -1,3 +1,7 @@
+#候補
+# dropout縦方向への
+# 
+# 
 import numpy as np
 import pandas as pd
 

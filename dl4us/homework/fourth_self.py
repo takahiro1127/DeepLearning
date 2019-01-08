@@ -1,6 +1,8 @@
 # 候補　単純に層を深くする　1.6
 # attenstionは必須
 # 時系列のデータはそれ自身のデータを取ってくるようにするやつもいいと思う。
+# dropout 0.5 56
+# beam search 3 -> 56
 import numpy as np
 from keras.models import Model
 from keras.layers import Input, Embedding, Dense, LSTM

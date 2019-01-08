@@ -1,36 +1,3 @@
-import numpy as np
-import pandas as pd
-
-
-def sort_data_by_length(data_x, data_y):
-    data_x_lens = [len(datum) for datum in data_x]
-    sorted_data_indexes = sorted(
-        range(len(data_x_lens)), key=lambda x: -data_x_lens[x])
-
-    data_x = [data_x[i] for i in sorted_data_indexes]
-    data_y = [data_y[i] for i in sorted_data_indexes]
-
-    return data_x, data_y
-
-
-def load_data():
-    # 学習データ
-    x_train = np.load('/root/userspace/public/lesson5/data/x_train.npy')
-    y_train = np.load('/root/userspace/public/lesson5/data/y_train.npy')
-    i2w = np.load('/root/userspace/public/lesson5/data/i2w.npy').item()
-    w2i = np.load('/root/userspace/public/lesson5/data/w2i.npy').item()
-    vocab_size = len(w2i)
-
-    # テストデータ
-    x_test = np.load('/root/userspace/public/lesson5/data/x_test.npy')
-
-    y_train, x_train = sort_data_by_length(y_train, x_train)
-
-    return (x_train, y_train, i2w, w2i, vocab_size, x_test)
-
-
-x_train, y_train, i2w, w2i, vocab_size, x_test = load_data()
-
 import os
 import sys
 import math
@@ -38,7 +5,7 @@ import copy
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Model
-from keras.layers import Input, Dense, Embedding, LSTM, Activation, Flatten, Reshape, dot, Permute, Lambda
+from keras.layers import Input, Dense, Embedding, LSTM, Activation, Flatten, Reshape, dot, Permute, Lambda, CuDNNLSTM
 from keras.optimizers import RMSprop
 from keras.utils import np_utils
 from keras import backend as K
@@ -65,7 +32,6 @@ encoder = VGG16(weights='imagenet', include_top=False,
 for layer in encoder.layers:
     layer.trainable = False
 
-print(encoder.output)
 u = Flatten()(encoder.output)
 
 ### Decoder ###
@@ -81,11 +47,11 @@ y_out = Lambda(lambda x: x[:, 1:])(y)
 mask = Lambda(lambda x: K.cast(K.not_equal(x, w2i['<pad>']), 'float32'))(y_out)
 
 embedding = Embedding(vocab_size, emb_dim)
-lstm = CuDNNLSTM(hid_dim, activation='tanh',
-            return_sequences=True, return_state=True)
+lstm = CuDNNLSTM(hid_dim, return_sequences=True, return_state=True)
 
 y_emb = embedding(y_in)
 h, _, _ = lstm(y_emb, initial_state=[h_0, cell_0])
+h = Activation('tanh')(h)
 
 ### Attention ###
 dense_att = Dense(hid_dim)
